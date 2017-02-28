@@ -30,6 +30,7 @@ import sys
 import os
 import argparse
 import tensorflow as tf
+#print(tf.__version__)
 import numpy as np
 import facenet
 import align.detect_face
