@@ -33,8 +33,6 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 import numpy as np
 from scipy import misc
-import matplotlib.pyplot as plt
-from sklearn.cross_validation import KFold
 from scipy import interpolate
 from tensorflow.python.training import training
 import random
@@ -388,6 +386,7 @@ def get_model_filenames(model_dir):
     return meta_file, ckpt_file
 
 def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame, nrof_folds=10):
+    from sklearn.cross_validation import KFold
     assert(embeddings1.shape[0] == embeddings2.shape[0])
     assert(embeddings1.shape[1] == embeddings2.shape[1])
     nrof_pairs = min(len(actual_issame), embeddings1.shape[0])
@@ -429,6 +428,7 @@ def calculate_accuracy(threshold, dist, actual_issame):
     return tpr, fpr, acc
 
 def plot_roc(fpr, tpr, label):
+    import matplotlib.pyplot as plt
     plt.plot(fpr, tpr, label=label)
     plt.title('Receiver Operating Characteristics')
     plt.xlabel('False Positive Rate')
@@ -439,6 +439,7 @@ def plot_roc(fpr, tpr, label):
     plt.show()
   
 def calculate_val(thresholds, embeddings1, embeddings2, actual_issame, far_target, nrof_folds=10):
+    from sklearn.cross_validation import KFold
     assert(embeddings1.shape[0] == embeddings2.shape[0])
     assert(embeddings1.shape[1] == embeddings2.shape[1])
     nrof_pairs = min(len(actual_issame), embeddings1.shape[0])
