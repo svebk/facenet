@@ -1,8 +1,10 @@
 """
 Minimum example of how to run face detection.
 
-Should be called from facenet root directory with one image path as argument.
+Should be called from facenet examples directory.
 """
+
+## This is 60X slower than tf version and does not detect faces where the tf version would...
 
 import os
 import cStringIO

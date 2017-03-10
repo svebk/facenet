@@ -20,8 +20,8 @@ s3_res = boto3.resource('s3')
 s3_clt = boto3.client('s3')
 
 sys.path.append('../')
-import facenet.src.align as align
-import facenet.src.align.detect_face as face_detector
+import src.align as align
+import src.align.detect_face as face_detector
 
 minsize = 20 # minimum size of face
 threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
@@ -29,6 +29,7 @@ factor = 0.709 # scale factor
 pnet = None
 rnet = None
 onet = None
+data_dir = '../../data/'
 
 def get_image_from_s3(s3_url):
   try:
@@ -62,7 +63,7 @@ def init_nets():
     )
     sess = tf.Session(config=cpu_config)
     with sess.as_default():
-      pnet, rnet, onet = align.detect_face.create_mtcnn(sess, '../data/')
+      pnet, rnet, onet = align.detect_face.create_mtcnn(sess, data_dir)
 
 def detect_image_memory(img):
   """
