@@ -304,7 +304,7 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
     minl=np.amin([h, w])
     m=12.0/minsize
     minl=minl*m
-    # creat scale pyramid
+    # create scale pyramid
     scales=[]
     while minl>=12:
         scales += [m*np.power(factor, factor_count)]

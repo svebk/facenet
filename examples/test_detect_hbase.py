@@ -155,9 +155,6 @@ if __name__ == "__main__":
   start_init_nets = time.time()
   init_nets()
   print "Detection networks initialized in {}s.".format(time.time() - start_init_nets)
-  start_init_facenet = time.time()
-  init_facenet()
-  print "Facenet network initialized in {}s.".format(time.time() - start_init_facenet)
   nb_images = 0
   start_time = time.time()
 
@@ -192,10 +189,6 @@ if __name__ == "__main__":
               for i,bbox in enumerate(bounding_boxes):
                 face_id = one_row[0]+'_'+'-'.join([str(int(x)) for x in bbox[:4]])
                 out_dict['info:facecropb64_'+face_id] = base64.b64encode(crops[i].tobytes())
-                start_compute_facefeat = time.time()
-                facefeat = compute_facefeat(crops[i])
-                print ""
-                out_dict['info:facefeatb64_' + face_id] = base64.b64encode(facefeat)
                 dict_bbox[face_id] = {}
                 dict_bbox[face_id]['bbox'] = ','.join([str(x) for x in bbox[:4]])
                 dict_bbox[face_id]['score'] = str(bbox[4])
