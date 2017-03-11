@@ -42,12 +42,6 @@ def main(args):
     with tf.Graph().as_default():
       
         with tf.Session() as sess:
-            
-            # Read the file containing the pairs used for testing
-            pairs = lfw.read_pairs(os.path.expanduser(args.lfw_pairs))
-
-            # Get the paths for the corresponding images
-            paths, actual_issame = lfw.get_paths(os.path.expanduser(args.lfw_dir), pairs, args.lfw_file_ext)
 
             # Load the model
             print('Model directory: %s' % args.model_dir)
@@ -56,7 +50,15 @@ def main(args):
             print('Metagraph file: %s' % meta_file)
             print('Checkpoint file: %s' % ckpt_file)
             facenet.load_model(args.model_dir, meta_file, ckpt_file)
-            
+
+            print('%d %s' % (len(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)), tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)))
+
+            # Read the file containing the pairs used for testing
+            pairs = lfw.read_pairs(os.path.expanduser(args.lfw_pairs))
+
+            # Get the paths for the corresponding images
+            paths, actual_issame = lfw.get_paths(os.path.expanduser(args.lfw_dir), pairs, args.lfw_file_ext)
+
             # Get input and output tensors
             image_paths_placeholder = tf.get_default_graph().get_tensor_by_name("image_paths:0")
             labels_placeholder = tf.get_default_graph().get_tensor_by_name("labels:0")
