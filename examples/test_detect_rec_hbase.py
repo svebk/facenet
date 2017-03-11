@@ -87,8 +87,8 @@ def crop_face_with_margin(img, bboxes, target_size=182, margin=44):
   crops = []
   for det in bboxes:
     bb = np.zeros(4, dtype=np.int32)
-    w_ar = (bb[2] - bb[0]) / target_size
-    h_ar = (bb[3] - bb[1]) / target_size
+    w_ar = (det[2] - det[0]) / target_size
+    h_ar = (det[3] - det[1]) / target_size
     bb[0] = np.maximum(det[0] - margin * w_ar / 2 , 0)
     bb[1] = np.maximum(det[1] - margin * h_ar / 2, 0)
     bb[2] = np.minimum(det[2] + margin * w_ar / 2, img.size[1])
