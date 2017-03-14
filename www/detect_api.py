@@ -1,4 +1,4 @@
-from flask import Flask, Markup, flash, request, render_template, make_response
+from flask import Flask, request, render_template, make_response
 from flask_restful import Resource, Api
 
 import sys
@@ -9,7 +9,7 @@ from datetime import datetime
 
 sys.path.append('../')
 from src.detectors.mtcnn import MTCNNFaceDetector
-from src.images.image_io import get_image_from_s3
+from src.images.image_io import get_image_from_s3, get_image_from_url, draw_face_bbox
 
 app = Flask(__name__)
 app.secret_key = "secret_key"
@@ -37,7 +37,7 @@ class APIResponder(Resource):
         self.nb_processed = 0
         self.nb_detected = 0
         # define valid options
-        self.valid_options = []
+        self.valid_options = ["return_images"]
         self.list_endpoints = ["detect_from_URL", "detect_from_B64", "view_detect_from_URL", "view_detect_from_B64"]
 
 
@@ -119,13 +119,18 @@ class APIResponder(Resource):
     def detect_from_URL(self, query, options=None):
         query_urls = query.split(',')
         options_dict, errors = self.get_options_dict(options)
+        print options_dict
+        return_images = False
+        if 'return_images' in options_dict and options_dict['return_images']:
+            return_images = True
         output = {}
         for image_url in query_urls:
             # download images
             try:
                 img = get_image_from_s3(image_url)
                 if img is None:
-                    print "We should download with request."
+                    print "We will download with request."
+                    img = get_image_from_url(image_url)
             except:
                 print "Could not download image from",image_url
                 output[image_url] = []
@@ -134,20 +139,35 @@ class APIResponder(Resource):
             out_img = {}
             for bbox in bboxes:
                 out_img['-'.join([str(x) for x in bbox[:4]])] = bbox[4]
-            output[image_url] = out_img
+            output[image_url] = {'detections': out_img}
+            if return_images:
+                output[image_url]['img'] = img
         return output
 
     def detect_from_B64(self, query, options=None):
+        import cStringIO
+        import base64
+        from PIL import Image
         query_b64s = query.split(',')
         options_dict, errors = self.get_options_dict(options)
+        print options_dict
+        return_images = False
+        if 'return_images' in options_dict and options_dict['return_images']:
+            return_images = True
         output = {}
         for i,image_b64 in enumerate(query_b64s):
             # load image
-
+            data_sio = cStringIO(base64.b64decode())
+            img = Image.open(data_sio)
             # detect in each image
-
+            bboxes = self.detector.detect_faces(img)
+            out_img = {}
+            for bbox in bboxes:
+                out_img['-'.join([str(x) for x in bbox[:4]])] = bbox[4]
             # save with image id as we don't want to push image b64 back...
-            output[str(i)] = 'detections'
+            output[str(i)] = {'detections': out_img}
+            if return_images:
+                output[str(i)]['img'] = img
         return output
 
 
@@ -161,26 +181,41 @@ class APIResponder(Resource):
         return status_dict
 
 
-    def get_image_str(self, row):
-        return "<img src=\"{}\" title=\"{}\" class=\"img_blur\">".format(row[1]["info:s3_url"],row[0])
-
     def view_detect_from_X(self, detections):
-        images_str = ""
-        # TODO: change this to actually just produce a list of images to fill a new template
-        for row in detections:
-            images_str += self.get_image_str(row)
-        images = Markup(images_str)
-        flash(images)
+        import base64
+        import cStringIO
+        from PIL import Image
+        detect_images = []
+        print detections
+        for one_det in detections:
+            print one_det
+            img = detections[one_det]['img']
+            bboxes_dict = detections[one_det]['detections']
+            bboxes = []
+            for key in bboxes_dict:
+                bboxes.append([float(x) for x in key.split('-')])
+            print bboxes
+            # we should draw the detections on the image
+            draw_face_bbox(img, bboxes)
+            # and b64 encode them, buffer saving needed for proper display
+            buffer = cStringIO.StringIO()
+            img.save(buffer, format=img.format)
+            detect_images.append((Image.MIME[img.format], base64.b64encode(buffer.getvalue())))
+        #print detect_images
         headers = {'Content-Type': 'text/html'}
-        return make_response(render_template('view_detections.html'), 200, headers)
+        return make_response(render_template('view_detections.html', detect_images=detect_images, noblur=True),
+                             200,
+                             headers)
 
     def view_detect_from_URL(self, query, options=None):
-        detections = self.detect_from_URL(query, options)
+        # TODO: we should add return_images to potential existing options
+        detections = self.detect_from_URL(query, "{\"return_images\":\"1\"}")
         return self.view_detect_from_X(detections)
 
 
     def view_detect_from_B64(self, query, options=None):
-        detections = self.detect_from_B64(query, options)
+        # TODO: we should add return_images to potential existing options
+        detections = self.detect_from_B64(query, "{\"return_images\":\"1\"}")
         return self.view_detect_from_X(detections)
 
 

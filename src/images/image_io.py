@@ -31,16 +31,34 @@ def get_image_from_s3(s3_url):
     print "Could not download image from {}. Error was: {}".format(s3_url, err)
     return None
 
+def get_image_from_url(url, verbose=0):
+  from cStringIO import StringIO
+  import requests
+  if verbose > 1:
+    print "Downloading image from {}.".format(url)
+  try:
+    r = requests.get(url, timeout=2)
+    if r.status_code == 200:
+      r_sio = StringIO(r.content)
+      if int(r.headers['content-length']) == 0:
+        raise ValueError("Empty image.")
+      else:
+        img = Image.open(r_sio)
+        return img
+    else:
+      raise ValueError("Incorrect status_code: {}.".format(r.status_code))
+  except Exception as inst:
+    print "Download failed from url {}. [{}]".format(url, inst)
+
 # Image drawing/showing
-def draw_face_bbox(img, bboxes):
+def draw_face_bbox(img, bboxes, width=4):
   from PIL import ImageDraw
   draw = ImageDraw.Draw(img)
   for bbox in bboxes:
-    draw.rectangle([(int(np.round(bbox[0])),
-                     int(np.round(bbox[1]))),
-                    (int(np.round(bbox[2])),
-                     int(np.round(bbox[3])))],
-                   outline=(0, 255, 0))
+    for i in range(width):
+      rect_start = (int(np.round(bbox[0] + width/2 - i)), int(np.round(bbox[1] + width/2 - i)))
+      rect_end = (int(np.round(bbox[2] - width/2 + i)), int(np.round(bbox[3] - width/2 + i)))
+      draw.rectangle((rect_start, rect_end), outline=(0, 255, 0))
 
 
 def show_face_bbox_memory(img, bboxes):

@@ -1,0 +1,17 @@
+<html>
+  <head>
+    <title>Images viewer</title>
+    {#<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">#}
+    <link rel="stylesheet" href="../static/style.css">
+  </head>
+  <body>
+    {% if noblur %}
+      {% set img_style = "img_vis" %}
+    {% else %}
+      {% set img_style = "img_blur" %}
+    {% endif %}
+    {% for img_type,image in detect_images %}
+    <img src="data:{{img_type}};base64,{{image}}" class="{{img_style}}">
+    {% endfor %}
+  </body>
+</html>
