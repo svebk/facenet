@@ -4,7 +4,7 @@ Minimum example of how to run face detection.
 Should be called from facenet root directory with one image path as argument.
 """
 
-
+import sys
 import time
 import json
 import base64
@@ -14,6 +14,7 @@ from PIL import Image
 
 skip_processed = False
 
+sys.path.append('../')
 from src.detectors.mtcnn import MTCNNFaceDetector
 from src.images.image_io import get_image_from_s3, crop_face_with_margin, show_face_bbox_memory, show_crops
 
