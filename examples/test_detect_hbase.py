@@ -86,6 +86,7 @@ def detect_image_memory(img):
   #print "Found {} faces.".format(len(bounding_boxes)), bounding_boxes
   return bounding_boxes
 
+
 def show_face_bbox_memory(img, bboxes):
   from PIL import ImageDraw
   draw = ImageDraw.Draw(img)
