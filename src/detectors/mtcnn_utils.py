@@ -29,9 +29,8 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-import cv2
 import os
-
+import sys
 
 def layer(op):
   '''Decorator for composable network layers.'''
@@ -358,12 +357,16 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
     # second stage
     tempimg = np.zeros((24, 24, 3, numbox))
     for k in range(0, numbox):
-      tmp = np.zeros((int(tmph[k]), int(tmpw[k]), 3))
-      tmp[dy[k] - 1:edy[k], dx[k] - 1:edx[k], :] = img[y[k] - 1:ey[k], x[k] - 1:ex[k], :]
+      #tmp = np.zeros((int(tmph[k]), int(tmpw[k]), 3))
+      #print(k, tmph[k], tmpw[k], dy[k], edy[k], dx[k], edx[k], y[k], ey[k], x[k], ex[k])
+      sys.stdout.flush()
+      # ValueError: could not broadcast input array from shape (408,0,3) into shape (465, 464,3)
+      #tmp[dy[k] - 1:edy[k], dx[k] - 1:edx[k], :] = img[y[k] - 1:ey[k], x[k] - 1:ex[k], :]
+      tmp = img[max(y[k] - 1,0):min(ey[k],w), max(x[k] - 1, 0):min(ex[k],h), :]
       if tmp.shape[0] > 0 and tmp.shape[1] > 0 or tmp.shape[0] == 0 and tmp.shape[1] == 0:
         tempimg[:, :, :, k] = imresample(tmp, (24, 24))
-      else:
-        return np.empty()
+      #else:
+      #  return np.empty()
     tempimg = (tempimg - 127.5) * 0.0078125
     tempimg1 = np.transpose(tempimg, (3, 1, 0, 2))
     out = rnet(tempimg1)
@@ -386,12 +389,14 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
     dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph = pad(total_boxes.copy(), w, h)
     tempimg = np.zeros((48, 48, 3, numbox))
     for k in range(0, numbox):
-      tmp = np.zeros((int(tmph[k]), int(tmpw[k]), 3))
-      tmp[dy[k] - 1:edy[k], dx[k] - 1:edx[k], :] = img[y[k] - 1:ey[k], x[k] - 1:ex[k], :]
+      #tmp = np.zeros((int(tmph[k]), int(tmpw[k]), 3))
+      #ValueError: could not broadcast input array from shape (0,191,3) into shape (190,191,3)
+      #tmp[dy[k] - 1:edy[k], dx[k] - 1:edx[k], :] = img[y[k] - 1:ey[k], x[k] - 1:ex[k], :]
+      tmp = img[max(y[k] - 1,0):min(ey[k],w), max(x[k] - 1,0):min(ex[k],h), :]
       if tmp.shape[0] > 0 and tmp.shape[1] > 0 or tmp.shape[0] == 0 and tmp.shape[1] == 0:
         tempimg[:, :, :, k] = imresample(tmp, (48, 48))
-      else:
-        return np.empty()
+      # else:
+      #   return np.empty()
     tempimg = (tempimg - 127.5) * 0.0078125
     tempimg1 = np.transpose(tempimg, (3, 1, 0, 2))
     out = onet(tempimg1)
@@ -512,22 +517,38 @@ def pad(total_boxes, w, h):
   ex = total_boxes[:, 2].copy().astype(np.int32)
   ey = total_boxes[:, 3].copy().astype(np.int32)
 
+  #print(dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph)
+
   tmp = np.where(ex > w)
-  edx[tmp] = np.expand_dims(-ex[tmp] + w + tmpw[tmp], 1)
-  ex[tmp] = w
+  if tmp[0].any():
+    #print("tmp ex>w: {}".format(tmp))
+    # ValueError: shape mismatch: value array of shape (0,1) could not be broadcast to indexing result of shape (0,)
+    #edx[tmp] = np.expand_dims(-ex[tmp] + w + tmpw[tmp], 1)
+    edx[tmp] = -ex[tmp] + w + tmpw[tmp]
+    ex[tmp] = w
 
   tmp = np.where(ey > h)
-  edy[tmp] = np.expand_dims(-ey[tmp] + h + tmph[tmp], 1)
+  if tmp[0].any():
+    #print("tmp ey>h: {}".format(tmp))
+    #edy[tmp] = np.expand_dims(-ey[tmp] + h + tmph[tmp], 1)
+    edy[tmp] = -ey[tmp] + h + tmph[tmp]
   ey[tmp] = h
 
   tmp = np.where(x < 1)
-  dx[tmp] = np.expand_dims(2 - x[tmp], 1)
-  x[tmp] = 1
+  if tmp[0].any():
+    #print("tmp x<1: {}".format(tmp))
+    #dx[tmp] = np.expand_dims(2 - x[tmp], 1)
+    dx[tmp] = 2 - x[tmp]
+    x[tmp] = 1
 
   tmp = np.where(y < 1)
-  dy[tmp] = np.expand_dims(2 - y[tmp], 1)
-  y[tmp] = 1
+  if tmp[0].any():
+    #print("tmp y<1: {}".format(tmp))
+    #dy[tmp] = np.expand_dims(2 - y[tmp], 1)
+    dy[tmp] = 2 - y[tmp]
+    y[tmp] = 1
 
+  #print(dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph)
   return dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph
 
 
@@ -543,9 +564,19 @@ def rerec(bboxA):
   return bboxA
 
 
+# def imresample(img, sz):
+#    # replace by skimage.transform.resize to avoid opencv dependcy
+#    # but actually breaks detector, no faces are detected...
+#    from skimage.transform import resize
+#    #im_data = resize(img, (sz[0], sz[1]), mode='reflect')
+#    im_data = resize(img, (sz[1], sz[0]), mode='reflect') # why dimensions are switched?
+#    return im_data
+
 def imresample(img, sz):
-  im_data = cv2.resize(img, (sz[1], sz[0]), interpolation=cv2.INTER_AREA)  # pylint: disable=no-member
-  return im_data
+   import cv2
+   #im_data = cv2.resize(img, (sz[0], sz[1]), interpolation=cv2.INTER_AREA)  # pylint: disable=no-member
+   im_data = cv2.resize(img, (sz[1], sz[0]), interpolation=cv2.INTER_AREA)  # why dimensions are switched?
+   return im_data
 
   # This method is kept for debugging purpose
 

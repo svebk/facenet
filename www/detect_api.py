@@ -207,6 +207,7 @@ class APIResponder(Resource):
                              200,
                              headers)
 
+    # http://localhost:5001/cu_face_detect/view_detect_from_URL?data=https://i.vimeocdn.com/video/443476895_1280x720.jpg
     def view_detect_from_URL(self, query, options=None):
         # TODO: we should add return_images to potential existing options
         detections = self.detect_from_URL(query, "{\"return_images\":\"1\"}")

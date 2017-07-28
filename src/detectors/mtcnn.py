@@ -1,6 +1,7 @@
+from __future__ import print_function
 import numpy as np
 import tensorflow as tf
-from mtcnn_utils import create_mtcnn, detect_face
+from mtcnn_utils import create_mtcnn, detect_face, imresample
 
 class MTCNNFaceDetector():
 
@@ -15,10 +16,22 @@ class MTCNNFaceDetector():
     self.rnet = None
     self.onet = None
     # default values that can be overwritten from conf
-    self.minsize = 20  # minimum size of face
-    self.threshold = [0.6, 0.7, 0.7]  # three steps's threshold
-    self.factor = 0.709  # scale factor
-    self.data_dir = '../../data/'
+    #self.minsize = 20  # minimum size of face
+    #self.minsize = 40  # minimum size of face
+    self.minsize = 48  # minimum size of face
+    #self.threshold = [0.6, 0.7, 0.7]  # three steps's threshold
+    #self.threshold = [0.65, 0.75, 0.8]  # three steps's threshold
+    #self.threshold = [0.7, 0.75, 0.85]  # three steps's threshold
+    #self.threshold = [0.6, 0.7, 0.85]  # three steps's threshold
+    #self.threshold = [0.65, 0.75, 0.85]  # three steps's threshold
+    self.threshold = [0.7, 0.75, 0.85]  # three steps's threshold
+    #self.factor = 0.709  # scale factor
+    #self.factor = 0.75  # scale factor
+    #self.factor = 0.8  # scale factor
+    #self.factor = 0.85  # scale factor
+    self.factor = 0.8  # scale factor
+    #self.data_dir = '../../data/'
+    self.data_dir = '../data/'
     # process conf
     if conf is not None:
       # could check types here...
@@ -50,5 +63,6 @@ class MTCNNFaceDetector():
     :param img: img in memory as a PIL Image
     :return bounding_boxes: list of faces bounding boxes and detection scores
     """
-    bounding_boxes, _ = detect_face(np.array(img), self.minsize, self.pnet, self.rnet, self.onet, self.threshold, self.factor)
+    arr_img = np.array(img)
+    bounding_boxes, _ = detect_face(arr_img, self.minsize, self.pnet, self.rnet, self.onet, self.threshold, self.factor)
     return bounding_boxes
