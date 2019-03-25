@@ -40,6 +40,7 @@ from scipy import misc
 #import align.detect_face
 import facenet
 from facenet.src import align
+from facenet.src.align import detect_face
 
 gpu_memory_fraction = 0.3
 facenet_model_checkpoint = os.path.dirname(__file__) + "/../model_checkpoints/20170512-110547"
