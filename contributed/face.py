@@ -32,15 +32,15 @@
 import pickle
 import os
 
-import cv2
+#import cv2 # Only for debug visualization...
 import numpy as np
 import tensorflow as tf
 from scipy import misc
 
-#import align.detect_face
+import align.detect_face
 import facenet
-from facenet.src import align
-from facenet.src.align import detect_face
+#from facenet.src import align
+#from facenet.src.align import detect_face
 
 gpu_memory_fraction = 0.3
 facenet_model_checkpoint = os.path.dirname(__file__) + "/../model_checkpoints/20170512-110547"
@@ -77,6 +77,7 @@ class Recognition:
 
         for i, face in enumerate(faces):
             if debug:
+                import cv2
                 cv2.imshow("Face: " + str(i), face.image)
             face.embedding = self.encoder.generate_embedding(face)
             face.name = self.identifier.identify(face)
@@ -151,6 +152,38 @@ class Detection:
             face.bounding_box[3] = np.minimum(bb[3] + self.face_crop_margin / 2, img_size[0])
             cropped = image[face.bounding_box[1]:face.bounding_box[3], face.bounding_box[0]:face.bounding_box[2], :]
             face.image = misc.imresize(cropped, (self.face_crop_size, self.face_crop_size), interp='bilinear')
+
+            faces.append(face)
+
+        return faces
+
+    def find_faces_vggface2(self, image):
+        faces = []
+        vggface2_rs = 256
+        vggface2_ts = 224
+        fm = (vggface2_rs - vggface2_ts) / 2
+
+        bounding_boxes, _ = align.detect_face.detect_face(image, self.minsize,
+                                                          self.pnet, self.rnet, self.onet,
+                                                          self.threshold, self.factor)
+        for bb in bounding_boxes:
+            face = Face()
+            face.container_image = image
+            face.bounding_box = np.zeros(4, dtype=np.int32)
+
+            img_size = np.asarray(image.shape)[0:2]
+            # bounding box is then extended by a factor 0.3 (except the extension outside image)
+            # to include the whole head, which is used as network input
+            fwm = (bb[2] - bb[0]) * 0.3
+            fhm = (bb[3] - bb[1]) * 0.3
+            face.bounding_box[0] = np.maximum(bb[0] - fwm / 2, 0)
+            face.bounding_box[1] = np.maximum(bb[1] - fhm / 2, 0)
+            face.bounding_box[2] = np.minimum(bb[2] + fwm / 2, img_size[1])
+            face.bounding_box[3] = np.minimum(bb[3] + fhm / 2, img_size[0])
+            cropped = image[face.bounding_box[1]:face.bounding_box[3], face.bounding_box[0]:face.bounding_box[2], :]
+            # First resize to 256 then take central crop of 224
+            tmp_face_image = misc.imresize(cropped, (vggface2_rs, vggface2_rs), interp='bilinear')
+            face.image = tmp_face_image[fm:vggface2_ts+fm, fm:vggface2_ts+fm, :]
 
             faces.append(face)
 
