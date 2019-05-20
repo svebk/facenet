@@ -32,6 +32,7 @@ from subprocess import Popen, PIPE
 import tensorflow as tf
 import numpy as np
 from scipy import misc
+
 from sklearn.model_selection import KFold
 from scipy import interpolate
 from tensorflow.python.training import training
@@ -466,8 +467,18 @@ def calculate_accuracy(threshold, dist, actual_issame):
     acc = float(tp+tn)/dist.size
     return tpr, fpr, acc
 
+def plot_roc(fpr, tpr, label):
+    import matplotlib.pyplot as plt
+    plt.plot(fpr, tpr, label=label)
+    plt.title('Receiver Operating Characteristics')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.legend()
+    plt.plot([0, 1], [0, 1], 'g--')
+    plt.grid(True)
+    plt.show()
 
-  
+
 def calculate_val(thresholds, embeddings1, embeddings2, actual_issame, far_target, nrof_folds=10, distance_metric=0, subtract_mean=False):
     assert(embeddings1.shape[0] == embeddings2.shape[0])
     assert(embeddings1.shape[1] == embeddings2.shape[1])
