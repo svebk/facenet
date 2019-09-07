@@ -188,3 +188,74 @@ class Detection:
             faces.append(face)
 
         return faces
+
+
+    def find_faces_arcface(self, image, **kwargs):
+
+        from skimage import transform as trans
+
+        # If we were to do alignment based on landmarks
+        do_align = bool(kwargs.get('align', False))
+        M = None
+        # Face image size
+        image_size = []
+        # Should we add a default? Which value 112,112?
+        #str_image_size = kwargs.get('image_size', '')
+        str_image_size = kwargs.get('image_size', '112,112')
+        if len(str_image_size) > 0:
+            image_size = [int(x) for x in str_image_size.split(',')]
+            if len(image_size) == 1:
+                image_size = [image_size[0], image_size[0]]
+            assert len(image_size) == 2
+            assert image_size[0] == 112
+            assert image_size[0] == 112 or image_size[1] == 96
+        margin = kwargs.get('margin', 44)
+        #margin = kwargs.get('margin', 32)
+
+        faces = []
+        bounding_boxes, points = align.detect_face.detect_face(image, self.minsize,
+                                                          self.pnet, self.rnet, self.onet,
+                                                          self.threshold, self.factor)
+
+        #print("bounding_boxes: ", bounding_boxes.shape, bounding_boxes)
+        #print("points: ", points.shape, points)
+
+        for bbi, det in enumerate(bounding_boxes):
+            face = Face()
+            face.container_image = image
+            face.bounding_box = np.zeros(4, dtype=np.int32)
+            face.bounding_box[0] = np.maximum(det[0] - margin / 2, 0)
+            face.bounding_box[1] = np.maximum(det[1] - margin / 2, 0)
+            face.bounding_box[2] = np.minimum(det[2] + margin / 2, image.shape[1])
+            face.bounding_box[3] = np.minimum(det[3] + margin / 2, image.shape[0])
+
+            if do_align:
+                import cv2
+                # Beware of stacking inducing weird reshape...
+                landmark = points[:,bbi].reshape(2,5).T
+                src = np.array([
+                    [30.2946, 51.6963],
+                    [65.5318, 51.5014],
+                    [48.0252, 71.7366],
+                    [33.5493, 92.3655],
+                    [62.7299, 92.2041]], dtype=np.float32)
+                if image_size[1] == 112:
+                    src[:, 0] += 8.0
+                dst = landmark.astype(np.float32)
+
+                #print("src: ", src.shape, src)
+                #print("dst: ", dst.shape, dst)
+
+                tform = trans.SimilarityTransform()
+                tform.estimate(dst, src)
+                M = tform.params[0:2, :]
+                face.image = cv2.warpAffine(image, M, (image_size[1], image_size[0]), borderValue=0.0)
+            else:
+                cropped = image[face.bounding_box[1]:face.bounding_box[3], face.bounding_box[0]:face.bounding_box[2], :]
+                if len(image_size) > 0:
+                    cropped = trans.resize(cropped, (image_size[1], image_size[0]))
+                face.image = cropped
+
+            faces.append(face)
+
+        return faces
