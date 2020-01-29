@@ -57,6 +57,7 @@ class Face:
         self.image = None
         self.container_image = None
         self.embedding = None
+        self.landmarks = None
 
 
 class Recognition:
@@ -210,7 +211,7 @@ class Detection:
                 image_size = [image_size[0], image_size[0]]
             assert len(image_size) == 2
             assert image_size[0] == 112
-            assert image_size[0] == 112 or image_size[1] == 96
+            assert image_size[1] == 112 or image_size[1] == 96
         margin = kwargs.get('margin', 44)
         #margin = kwargs.get('margin', 32)
 
@@ -234,7 +235,9 @@ class Detection:
             if do_align:
                 import cv2
                 # Beware of stacking inducing weird reshape...
-                landmark = points[:,bbi].reshape(2,5).T
+                landmark = points[:, bbi].reshape(2,5).T
+                # Landmark coordinates in the original image!
+                face.landmarks = landmark
                 src = np.array([
                     [30.2946, 51.6963],
                     [65.5318, 51.5014],
